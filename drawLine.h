@@ -19,6 +19,8 @@ public:
 
     bool checkIfInFrame(QPoint point);
     void paintingPixel(QPoint point);
+    void drawWall(int x, int wallHeight, int screenHeight);
+
 
 private:
     QImage* img;

@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
 #include "drawline.h"
+#include "zbuffer.h"
 
 #include <QMainWindow>
 
@@ -11,12 +11,21 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+struct Point3D {
+    float x, y, z;
+};
+
+struct Point2D {
+    float x, y;
+};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
     DrawLine* drawline;
+    Zbuffer* zbuffer;
 
     int imgMatrix[4];
     std::vector<std::pair<int, int>> edges;
@@ -39,8 +48,9 @@ public:
     int imgBeginY;
     QImage* layerBehindImg;
 
-    int edgeLength;
-    std::array<std::array<int, 3>, 8> cubeCoordinates3D;
+    float edgeLength;
+    std::vector<float> depths;
+    std::array<std::array<float, 3>, 8> cubeCoordinates3D;
     std::vector<std::array<int, 2>> cubeCoordinates2D;
     std::array<std::array<int, 4>, 6> walls;
 
@@ -71,10 +81,26 @@ public:
     void copy(QImage *, QImage *);
     void clear(QImage *);
 
-private:
-    Ui::MainWindow *ui;
 
+    bool isFaceVisible(const Point3D& normal, const Point3D& viewDir);
+    Point3D calculateNormal(const Point3D& p1, const Point3D& p2, const Point3D& p3);
+
+private:
+
+    std::vector<std::vector<float>> zBuffer;
+    Ui::MainWindow *ui;
+    QPoint lastPosition;
+    void updatePosition();
+    double OXpositionWSAD;
+    double OZpositionWSAD;
+    bool isWPressed;
+    bool isSPressed;
+    bool isAPressed;
+    bool isDPressed;
 private slots:
+    void keyPressEvent(QKeyEvent *event);
+    void keyReleaseEvent(QKeyEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
     void paintEvent(QPaintEvent*);
 
 };

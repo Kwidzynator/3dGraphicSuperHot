@@ -99,3 +99,10 @@ int DrawLine::chooseDirectionX(QPoint start, QPoint end) {
 int DrawLine::chooseDirectionY(QPoint start, QPoint end) {
     return start.ry() < end.ry() ? 1 : -1;
 }
+
+void DrawLine::drawWall(int x, int wallHeight, int screenHeight){
+    int wallTop = (screenHeight / 2) - (wallHeight / 2);
+    int wallBot = (screenHeight / 2) + (wallHeight / 2);
+
+    paintLine(QPoint(x, wallTop), QPoint(x, wallBot));
+}

@@ -11,11 +11,15 @@ CONFIG += c++17
 SOURCES += \
     drawLine.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    texturing.cpp \
+    zbuffer.cpp
 
 HEADERS += \
     drawLine.h \
-    mainwindow.h
+    mainwindow.h \
+    texturing.h \
+    zbuffer.h
 
 FORMS += \
     mainwindow.ui

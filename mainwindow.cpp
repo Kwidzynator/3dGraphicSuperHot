@@ -4,16 +4,27 @@
 #include <QPainter>
 #include <cmath>
 #include "drawline.h"
+#include "qevent.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , lastPosition(QPoint(0, 0))
 {
+    setMouseTracking(true);
     ui->setupUi(this);
     setUpSliders();
     setUpImg();
     drawline = new DrawLine(layerBehindImg, width, height);
+    zbuffer = new Zbuffer(width, height, drawline);
     setUpCube();
+
+    OXpositionWSAD = 0;
+    OZpositionWSAD = 0;
+    isWPressed = false;
+    isSPressed = false;
+    isAPressed = false;
+    isDPressed = false;
 
 
 }
@@ -26,8 +37,8 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::setUpSliders(){
-    int minVal = -100;
-    int maxVal = 100;
+    int minVal = -500;
+    int maxVal = 500;
 
     ui->translationSliderOX->setMinimum(minVal);
     ui->translationSliderOX->setMaximum(maxVal);
@@ -137,8 +148,8 @@ void MainWindow::setUpImg(){
 
 
 void MainWindow::setUpCube(){
-    edgeLength = 200;
-    int a = edgeLength/2;
+    edgeLength = 400;
+    float a = edgeLength/2;
     cx = width/2;
     cy = height/2;
     d = 500;
@@ -152,17 +163,14 @@ void MainWindow::setUpCube(){
         int x = cubeCoordinates3D[i][0];
         int y = cubeCoordinates3D[i][1];
         int z = cubeCoordinates3D[i][2];
+        depths.push_back(z);
 
-        if(z == - d){
-            std::cout << "breaking" << std::endl;
-            continue;
-        }
-
-        int x2D = cx + (x * d) / (z + d);
-        int y2D = cy + (y * d) / (z + d);
+        int x2D = cx + (x * d) / (-z + d);
+        int y2D = cy + (y * d) / (-z + d);
 
         cubeCoordinates2D.push_back({x2D, y2D});
     }
+
 
     edges = {
         {0, 1}, {1, 2}, {2, 3}, {3, 0},
@@ -170,7 +178,136 @@ void MainWindow::setUpCube(){
         {0, 4}, {1, 5}, {2, 6}, {3, 7}
     };
 
-    drawCube();
+    walls = {{
+        {0, 1, 2, 3},
+        {4, 5, 6, 7},
+        {0, 4, 5, 1},
+        {2, 6, 7, 3},
+        {0, 3, 7, 4},
+        {1, 2, 6, 5}
+    }};
+
+    multiplicateMatrix();
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    clear(layerBehindImg);
+
+    switch (event->key()) {
+    case Qt::Key_W:
+        isWPressed = true;
+        break;
+    case Qt::Key_S:
+        isSPressed = true;
+        break;
+    case Qt::Key_A:
+        isAPressed = true;
+        break;
+    case Qt::Key_D:
+        isDPressed = true;
+        break;
+    default:
+        QMainWindow::keyPressEvent(event);
+    }
+
+    updatePosition();
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+    clear(layerBehindImg);
+
+    switch (event->key()) {
+    case Qt::Key_W:
+        isWPressed = false;
+        break;
+    case Qt::Key_S:
+        isSPressed = false;
+        break;
+    case Qt::Key_A:
+        isAPressed = false;
+        break;
+    case Qt::Key_D:
+        isDPressed = false;
+        break;
+    default:
+        QMainWindow::keyReleaseEvent(event);
+    }
+
+    updatePosition();
+}
+
+void MainWindow::updatePosition() {
+
+    if (isWPressed && isDPressed) {
+        OZpositionWSAD += 5;
+        OXpositionWSAD += 5;
+    }
+    else if (isWPressed && isAPressed) {
+        OZpositionWSAD += 5;
+        OXpositionWSAD -= 5;
+    }
+    else if (isSPressed && isDPressed) {
+        OZpositionWSAD -= 5;
+        OXpositionWSAD += 5;
+    }
+    else if (isSPressed && isAPressed) {
+        OZpositionWSAD -= 5;
+        OXpositionWSAD -= 5;
+    }
+    // Zwykłe ruchy na osiach
+    else {
+        if (isWPressed) {
+            OZpositionWSAD += 5;
+        }
+        if (isSPressed) {
+            OZpositionWSAD -= 5;
+        }
+        if (isAPressed) {
+            OXpositionWSAD -= 5;
+        }
+        if (isDPressed) {
+            OXpositionWSAD += 5;
+        }
+    }
+
+    translateMatrix[0][3] = -OXpositionWSAD;
+    translateMatrix[2][3] = -OZpositionWSAD;
+    multiplicateMatrix();
+}
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+
+    int currentVal;
+
+    QPoint currentPos = event->pos();
+
+        int dx = currentPos.x() - lastPosition.x();
+        int dy = currentPos.y() - lastPosition.y();
+
+        if (dx > 0){
+            currentVal = ui->rotationSliderOY->value();
+            sliderRotateOY(currentVal + 1);
+
+        }
+
+        else if (dx < 0){
+            currentVal = ui->rotationSliderOY->value();
+            sliderRotateOY(currentVal - 1);
+
+        }
+
+        if (dy > 0){
+            currentVal = ui->rotationSliderOX->value();
+            sliderRotateOX(currentVal - 1);
+
+        }
+        else if (dy < 0){
+            currentVal = ui->rotationSliderOX->value();
+            sliderRotateOX(currentVal + 1);
+
+        }
+
+    lastPosition = currentPos;
 }
 
 void MainWindow::copy(QImage* copied, QImage* edited) {
@@ -368,6 +505,8 @@ void MainWindow::multiplicateMatrix() {
     calculatedMatrix[3] = {0, 0, 0, 1};
 
     cubeCoordinates2D.clear();
+    depths.clear();
+    zbuffer->clear();
 
     // calculatedMatrix = getBiggerMatrix(shearingMatrixOX, scaleMatrix);
     // calculatedMatrix = getBiggerMatrix(calculatedMatrix, rotateMatrix);
@@ -431,20 +570,24 @@ void MainWindow::movePixel(double m[4], int x, int y) {
     int x2D = cx + (m[0] * d) / (m[2] + d);
     int y2D = cy + (m[1] * d) / (m[2] + d);
 
+    depths.push_back(m[2]);
     cubeCoordinates2D.push_back({x2D, y2D});
 }
 
 void MainWindow::drawCube(){
 
 
-    for (const auto& edge : edges) {
-        int startIdx = edge.first;
-        int endIdx = edge.second;
+    zbuffer->renderObject(cubeCoordinates2D, depths, walls);
 
-        QPoint startPoint(cubeCoordinates2D[startIdx][0], cubeCoordinates2D[startIdx][1]);
-        QPoint endPoint(cubeCoordinates2D[endIdx][0], cubeCoordinates2D[endIdx][1]);
 
-        drawline->paintLine(startPoint, endPoint);
-    }
+    // for (const auto& edge : edges) {
+    //     int startIdx = edge.first;
+    //     int endIdx = edge.second;
+
+    //     QPoint startPoint(cubeCoordinates2D[startIdx][0], cubeCoordinates2D[startIdx][1]);
+    //     QPoint endPoint(cubeCoordinates2D[endIdx][0], cubeCoordinates2D[endIdx][1]);
+
+    //     drawline->paintLine(startPoint, endPoint);
+    // }
 
 }

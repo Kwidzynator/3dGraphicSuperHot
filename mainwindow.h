@@ -3,6 +3,7 @@
 #include "drawline.h"
 #include "zbuffer.h"
 
+#include "OpenGLSetup.h"
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -50,8 +51,11 @@ public:
 
     float edgeLength;
     std::vector<float> depths;
+    std::vector<float> rubikDepths;
     std::array<std::array<float, 3>, 8> cubeCoordinates3D;
+    std::array<std::array<float, 3>, 64> rubikWallCoordinates3D;
     std::vector<std::array<int, 2>> cubeCoordinates2D;
+    std::vector<std::array<int, 2>> rubikWallCoordinates2D;
     std::array<std::array<int, 4>, 6> walls;
 
     MainWindow(QWidget *parent = nullptr);
@@ -59,6 +63,7 @@ public:
     void setUpSliders();
     void setUpImg();
     void setUpCube();
+    void setUpFloor();
     void resetSliders();
     void onSliderValueChanged(int);
     void sliderTranslateOX(int);
@@ -73,10 +78,15 @@ public:
     void sliderShearingOX(int);
     void sliderShearingOY(int);
 
+
+    void coordinatesTo2D();
+
     void drawCube();
+    void drawFloor();
+
     void multiplicateMatrix();
     std::array<std::array<double, 4>, 4> getBiggerMatrix(std::array<std::array<double, 4>, 4>, std::array<std::array<double, 4>, 4>);
-    void movePixel(double[4], int, int);
+    void movePixel(double[4], std::vector<std::array<int, 2>> *);
     std::array<std::array<double, 4>, 4> multiplyMatrices(const std::array<std::array<double, 4>, 4> &, const std::array<std::array<double, 4>, 4> &);
     void copy(QImage *, QImage *);
     void clear(QImage *);
@@ -86,7 +96,7 @@ public:
     Point3D calculateNormal(const Point3D& p1, const Point3D& p2, const Point3D& p3);
 
 private:
-
+    OpenGLSetup *openGLWidget;
     std::vector<std::vector<float>> zBuffer;
     Ui::MainWindow *ui;
     QPoint lastPosition;

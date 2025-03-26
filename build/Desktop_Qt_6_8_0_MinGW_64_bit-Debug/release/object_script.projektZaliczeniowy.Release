@@ -1,0 +1,10 @@
+release/drawLine.o
+release/main.o
+release/mainwindow.o
+release/openGlSetup.o
+release/texturing.o
+release/zbuffer.o
+release/qrc_images.o
+release/moc_OpenGLSetup.o
+release/moc_mainwindow.o
+release/moc_texturing.o

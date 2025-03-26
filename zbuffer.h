@@ -15,7 +15,7 @@ public:
     std::vector<std::vector<float>> buffer;
     std::vector<float> depths;
     std::array<std::array<int, 4>, 6> walls;
-
+    int wa;
     Zbuffer(int, int, DrawLine*);
     ~Zbuffer();
 

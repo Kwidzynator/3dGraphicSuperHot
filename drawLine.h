@@ -11,21 +11,22 @@ public:
 
     DrawLine(QImage* image, int width, int height);
 
-    void paintLine(QPoint startPoint, QPoint endPoint);
+    void paintLine(QPoint startPoint, QPoint endPoint, int, int, int);
     void drawHorizontally(QPoint start, QPoint end);
     void drawVertically(QPoint start, QPoint end);
     void drawDiagonallyX(QPoint start, QPoint end);
     void drawDiagonallyY(QPoint start, QPoint end);
 
     bool checkIfInFrame(QPoint point);
-    void paintingPixel(QPoint point);
+    void paintingPixel(QPoint point, int, int, int);
     void drawWall(int x, int wallHeight, int screenHeight);
 
-
+    int r, g, b;
 private:
     QImage* img;
     int imgWidth;
     int imgHeight;
+
 
     float calculateA(QPoint startPoint, QPoint endPoint);
     float calculateB(QPoint startPoint, float a);

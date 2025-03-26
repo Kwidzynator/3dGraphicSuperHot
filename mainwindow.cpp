@@ -13,11 +13,20 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setMouseTracking(true);
     ui->setupUi(this);
+
     setUpSliders();
     setUpImg();
+
+    // openGLWidget = new OpenGLSetup(this);
+    // openGLWidget->setParent(ui->openGLContainer);
+
     drawline = new DrawLine(layerBehindImg, width, height);
     zbuffer = new Zbuffer(width, height, drawline);
+
+
     setUpCube();
+
+    multiplicateMatrix();
 
     OXpositionWSAD = 0;
     OZpositionWSAD = 0;
@@ -148,28 +157,58 @@ void MainWindow::setUpImg(){
 
 
 void MainWindow::setUpCube(){
-    edgeLength = 400;
+    edgeLength = 300;
     float a = edgeLength/2;
     cx = width/2;
     cy = height/2;
-    d = 500;
+    d = 170;
+
+    float rubikPoint = 100;
 
     cubeCoordinates3D = {{
         {{-a, -a, -a}}, {{ a, -a, -a}}, {{ a,  a, -a}}, {{-a,  a, -a}},
         {{-a, -a,  a}}, {{ a, -a,  a}}, {{ a,  a,  a}}, {{-a,  a,  a}}
     }};
 
-    for(int i = 0; i < cubeCoordinates3D.size(); i++){
-        int x = cubeCoordinates3D[i][0];
-        int y = cubeCoordinates3D[i][1];
-        int z = cubeCoordinates3D[i][2];
-        depths.push_back(z);
+    rubikWallCoordinates3D = {{
 
-        int x2D = cx + (x * d) / (-z + d);
-        int y2D = cy + (y * d) / (-z + d);
+        {{-a + rubikPoint, -a, -a}}, {{-a + rubikPoint, -a, a}},
+        {{ a - rubikPoint, -a, -a}}, {{ a - rubikPoint, -a, a}},
+        {{ a, -a, -a + rubikPoint}}, {{-a, -a, -a + rubikPoint}},
+        {{ a,  -a,  a - rubikPoint}}, {{-a,  -a,  a - rubikPoint}}, //up
 
-        cubeCoordinates2D.push_back({x2D, y2D});
-    }
+        {{ a - rubikPoint,  a, -a}}, {{ a - rubikPoint,  a, a}},
+        {{-a + rubikPoint,  a, -a}}, {{-a + rubikPoint,  a, a}},
+        {{a,  a, a - rubikPoint}}, {{-a,  a, a - rubikPoint}},
+        {{a,  a, -a + rubikPoint}}, {{-a,  a, -a + rubikPoint}}, //down
+
+        {{ a, -a + rubikPoint, -a}}, {{ a, -a + rubikPoint, a}},
+        {{ a,  a - rubikPoint, -a}}, {{ a,  a - rubikPoint, a}}, // right
+        {{a,  a, a - rubikPoint}}, {{ a,  -a,  a - rubikPoint}},
+        {{ a, -a, -a + rubikPoint}}, {{a,  a, -a + rubikPoint}},
+
+        {{-a,  a - rubikPoint, -a}}, {{-a,  a - rubikPoint, a}},
+        {{-a,  -a + rubikPoint , -a}}, {{-a,  -a + rubikPoint , a}}, //left
+        {{-a,  -a,  a - rubikPoint}}, {{-a,  a, a - rubikPoint}},
+        {{-a, -a, -a + rubikPoint}}, {{-a,  a, -a + rubikPoint}},
+
+        {{-a + rubikPoint, -a, -a}}, {{-a + rubikPoint,  a, -a}},
+        {{ a - rubikPoint, -a, -a}}, {{ a - rubikPoint,  a, -a}},
+        {{ a, -a + rubikPoint, -a}}, {{-a,  -a + rubikPoint , -a}},
+        {{ a,  a - rubikPoint, -a}}, {{-a,  a - rubikPoint, -a}}, //front
+
+
+        {{ a,  a - rubikPoint, a}}, {{-a,  a - rubikPoint, a}},
+        {{ a, -a + rubikPoint, a}}, {{-a,  -a + rubikPoint , a}},
+        {{ a - rubikPoint, -a, a}}, {{ a - rubikPoint,  a, a}},
+        {{-a + rubikPoint, -a, a}}, {{-a + rubikPoint,  a, a}},
+
+        {{-a, -a, -a}}, {{ a, -a, -a}}, {{ a,  a, -a}}, {{-a,  a, -a}},
+        {{-a, -a,  a}}, {{ a, -a,  a}}, {{ a,  a,  a}}, {{-a,  a,  a}}
+
+    }};
+
+    coordinatesTo2D();
 
 
     edges = {
@@ -187,7 +226,36 @@ void MainWindow::setUpCube(){
         {1, 2, 6, 5}
     }};
 
-    multiplicateMatrix();
+
+
+}
+
+
+void MainWindow::coordinatesTo2D(){
+    for(int i = 0; i < cubeCoordinates3D.size(); i++){
+        int x = cubeCoordinates3D[i][0];
+        int y = cubeCoordinates3D[i][1];
+        int z = cubeCoordinates3D[i][2];
+        depths.push_back(z);
+
+        int x2D = cx + (x * d) / (-z + d);
+        int y2D = cy + (y * d) / (-z + d);
+
+        cubeCoordinates2D.push_back({x2D, y2D});
+    }
+
+
+    for(int i = 0; i < rubikWallCoordinates3D.size(); i++){
+        int x = rubikWallCoordinates3D[i][0];
+        int y = rubikWallCoordinates3D[i][1];
+        int z = rubikWallCoordinates3D[i][2];
+
+        rubikDepths.push_back(z);
+        int x2D = cx + (x * d) / (-z + d);
+        int y2D = cy + (y * d) / (-z + d);
+
+        rubikWallCoordinates2D.push_back({x2D, y2D});
+    }
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
@@ -274,6 +342,7 @@ void MainWindow::updatePosition() {
     translateMatrix[2][3] = -OZpositionWSAD;
     multiplicateMatrix();
 }
+
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
 
@@ -496,6 +565,7 @@ void MainWindow::clear(QImage *image){
 
 void MainWindow::multiplicateMatrix() {
     double resultMatrix[4] = {0, 0, 0, 1};
+    double rubikResultMatrix[4] = {0, 0, 0, 1};
     std::array<std::array<double, 4>, 4> calculatedMatrix;
     double adjustedZ = 1.0;
 
@@ -505,14 +575,9 @@ void MainWindow::multiplicateMatrix() {
     calculatedMatrix[3] = {0, 0, 0, 1};
 
     cubeCoordinates2D.clear();
+    rubikWallCoordinates2D.clear();
     depths.clear();
     zbuffer->clear();
-
-    // calculatedMatrix = getBiggerMatrix(shearingMatrixOX, scaleMatrix);
-    // calculatedMatrix = getBiggerMatrix(calculatedMatrix, rotateMatrix);
-    // calculatedMatrix = getBiggerMatrix(calculatedMatrix, rotateMatrixY);
-    // calculatedMatrix = getBiggerMatrix(calculatedMatrix, rotateMatrixZ);
-    // calculatedMatrix = getBiggerMatrix(calculatedMatrix, translateMatrix);
 
     calculatedMatrix = getBiggerMatrix(calculatedMatrix, translateMatrix);
     calculatedMatrix = getBiggerMatrix(calculatedMatrix, rotateMatrix);
@@ -533,61 +598,61 @@ void MainWindow::multiplicateMatrix() {
         resultMatrix[2] = calculatedMatrix[2][0] * pixelX + calculatedMatrix[2][1] * pixelY + calculatedMatrix[2][2] * pixelZ + calculatedMatrix[2][3];
         resultMatrix[3] = calculatedMatrix[3][0] * pixelX + calculatedMatrix[3][1] * pixelY + calculatedMatrix[3][2] * pixelZ + calculatedMatrix[3][3];
 
-        movePixel(resultMatrix, static_cast<int>(pixelX), static_cast<int>(pixelY));
+        movePixel(resultMatrix, &cubeCoordinates2D);
     }
+
+    for(const auto& coord: rubikWallCoordinates3D){
+        double pixelX = coord[0];
+        double pixelY = coord[1];
+        double pixelZ = coord[2];
+
+        rubikResultMatrix[0] = calculatedMatrix[0][0] * pixelX + calculatedMatrix[0][1] * pixelY + calculatedMatrix[0][2] * pixelZ + calculatedMatrix[0][3];
+        rubikResultMatrix[1] = calculatedMatrix[1][0] * pixelX + calculatedMatrix[1][1] * pixelY + calculatedMatrix[1][2] * pixelZ + calculatedMatrix[1][3];
+        rubikResultMatrix[2] = calculatedMatrix[2][0] * pixelX + calculatedMatrix[2][1] * pixelY + calculatedMatrix[2][2] * pixelZ + calculatedMatrix[2][3];
+        rubikResultMatrix[3] = calculatedMatrix[3][0] * pixelX + calculatedMatrix[3][1] * pixelY + calculatedMatrix[3][2] * pixelZ + calculatedMatrix[3][3];
+
+        movePixel(rubikResultMatrix, &rubikWallCoordinates2D);
+    }
+
     drawCube();
     update();
 }
 
 std::array<std::array<double, 4>, 4> MainWindow::getBiggerMatrix(std::array<std::array<double, 4>, 4> m1, std::array<std::array<double, 4>, 4> calculatedMatrix){
-    std::array<std::array<double, 4>, 4> result;
+    std::array<std::array<double, 4>, 4> result = {};
 
-    result[0][0] = m1[0][0] * calculatedMatrix[0][0] + m1[0][1] * calculatedMatrix[1][0] + m1[0][2] * calculatedMatrix[2][0] + m1[0][3] * calculatedMatrix[3][0];
-    result[0][1] = m1[0][0] * calculatedMatrix[0][1] + m1[0][1] * calculatedMatrix[1][1] + m1[0][2] * calculatedMatrix[2][1] + m1[0][3] * calculatedMatrix[3][1];
-    result[0][2] = m1[0][0] * calculatedMatrix[0][2] + m1[0][1] * calculatedMatrix[1][2] + m1[0][2] * calculatedMatrix[2][2] + m1[0][3] * calculatedMatrix[3][2];
-    result[0][3] = m1[0][0] * calculatedMatrix[0][3] + m1[0][1] * calculatedMatrix[1][3] + m1[0][2] * calculatedMatrix[2][3] + m1[0][3] * calculatedMatrix[3][3];
-
-
-    result[1][0] = m1[1][0] * calculatedMatrix[0][0] + m1[1][1] * calculatedMatrix[1][0] + m1[1][2] * calculatedMatrix[2][0] + m1[1][3] * calculatedMatrix[3][0];
-    result[1][1] = m1[1][0] * calculatedMatrix[0][1] + m1[1][1] * calculatedMatrix[1][1] + m1[1][2] * calculatedMatrix[2][1] + m1[1][3] * calculatedMatrix[3][1];
-    result[1][2] = m1[1][0] * calculatedMatrix[0][2] + m1[1][1] * calculatedMatrix[1][2] + m1[1][2] * calculatedMatrix[2][2] + m1[1][3] * calculatedMatrix[3][2];
-    result[1][3] = m1[1][0] * calculatedMatrix[0][3] + m1[1][1] * calculatedMatrix[1][3] + m1[1][2] * calculatedMatrix[2][3] + m1[1][3] * calculatedMatrix[3][3];
-
-    result[2][0] = m1[2][0] * calculatedMatrix[0][0] + m1[2][1] * calculatedMatrix[1][0] + m1[2][2] * calculatedMatrix[2][0] + m1[2][3] * calculatedMatrix[3][0];
-    result[2][1] = m1[2][0] * calculatedMatrix[0][1] + m1[2][1] * calculatedMatrix[1][1] + m1[2][2] * calculatedMatrix[2][1] + m1[2][3] * calculatedMatrix[3][1];
-    result[2][2] = m1[2][0] * calculatedMatrix[0][2] + m1[2][1] * calculatedMatrix[1][2] + m1[2][2] * calculatedMatrix[2][2] + m1[2][3] * calculatedMatrix[3][2];
-    result[2][3] = m1[2][0] * calculatedMatrix[0][3] + m1[2][1] * calculatedMatrix[1][3] + m1[2][2] * calculatedMatrix[2][3] + m1[2][3] * calculatedMatrix[3][3];
-
-    result[3][0] = m1[3][0] * calculatedMatrix[0][0] + m1[3][1] * calculatedMatrix[1][0] + m1[3][2] * calculatedMatrix[2][0] + m1[3][3] * calculatedMatrix[3][0];
-    result[3][1] = m1[3][0] * calculatedMatrix[0][1] + m1[3][1] * calculatedMatrix[1][1] + m1[3][2] * calculatedMatrix[2][1] + m1[3][3] * calculatedMatrix[3][1];
-    result[3][2] = m1[3][0] * calculatedMatrix[0][2] + m1[3][1] * calculatedMatrix[1][2] + m1[3][2] * calculatedMatrix[2][2] + m1[3][3] * calculatedMatrix[3][2];
-    result[3][3] = m1[3][0] * calculatedMatrix[0][3] + m1[3][1] * calculatedMatrix[1][3] + m1[3][2] * calculatedMatrix[2][3] + m1[3][3] * calculatedMatrix[3][3];
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result[i][j] = 0;
+            for (int k = 0; k < 4; ++k) {
+                result[i][j] += m1[i][k] * calculatedMatrix[k][j];
+            }
+        }
+    }
 
     return result;
 }
 
-void MainWindow::movePixel(double m[4], int x, int y) {
+void MainWindow::movePixel(double m[4], std::vector<std::array<int, 2>>* coords2D) {
     int x2D = cx + (m[0] * d) / (m[2] + d);
     int y2D = cy + (m[1] * d) / (m[2] + d);
 
+
     depths.push_back(m[2]);
-    cubeCoordinates2D.push_back({x2D, y2D});
+    coords2D->push_back({x2D, y2D});
 }
 
 void MainWindow::drawCube(){
 
-
     zbuffer->renderObject(cubeCoordinates2D, depths, walls);
 
 
-    // for (const auto& edge : edges) {
-    //     int startIdx = edge.first;
-    //     int endIdx = edge.second;
-
-    //     QPoint startPoint(cubeCoordinates2D[startIdx][0], cubeCoordinates2D[startIdx][1]);
-    //     QPoint endPoint(cubeCoordinates2D[endIdx][0], cubeCoordinates2D[endIdx][1]);
-
-    //     drawline->paintLine(startPoint, endPoint);
-    // }
-
+    for(int i = 0; i < rubikWallCoordinates2D.size() - 1; i+=2){
+        int next = i + 1;
+        QPoint point = QPoint(rubikWallCoordinates2D[i][0], rubikWallCoordinates2D[i][1]);
+        QPoint oppositePoint = QPoint(rubikWallCoordinates2D[next][0], rubikWallCoordinates2D[next][1]);
+        drawline->paintLine(point, oppositePoint, 255, 255, 255);
+    }
 }
+
+

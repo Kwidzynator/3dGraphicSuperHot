@@ -7,7 +7,7 @@
 
 Zbuffer::Zbuffer(int w, int h, DrawLine* drawl) : height(h), width(w), drawline(drawl){
     buffer = std::vector<std::vector<float>>(height,
-                    std::vector<float>(width, std::numeric_limits<float>::infinity()));
+                                             std::vector<float>(width, std::numeric_limits<float>::infinity()));
 
 }
 
@@ -33,7 +33,7 @@ void Zbuffer::renderObject(std::vector<std::array<int, 2>> cubeCoordinates2D, st
                                            cubeCoordinates2D[wall[0]][0], cubeCoordinates2D[wall[0]][1],
                                            cubeCoordinates2D[wall[1]][0], cubeCoordinates2D[wall[1]][1],
                                            cubeCoordinates2D[wall[2]][0], cubeCoordinates2D[wall[2]][1],
-                                            cubeCoordinates2D[wall[3]][0], cubeCoordinates2D[wall[3]][1]};
+                                           cubeCoordinates2D[wall[3]][0], cubeCoordinates2D[wall[3]][1]};
 
         std::vector<float> cornerDepths = {depths[wall[0]], depths[wall[1]], depths[wall[2]], depths[wall[3]]};
 
@@ -62,7 +62,7 @@ void Zbuffer::renderWall(const std::array<int, 8>& cornerCoords, const std::vect
             if (isPointInsideQuad(x, y, cornerCoords)) {
                 float depth = interpolateDepth(x, y, cornerCoords, cornerDepths);
                 if (depth >= 0 && updateDepth(x, y, depth)) {
-                    drawline->paintingPixel(QPoint(x, y));
+                    drawline->paintingPixel(QPoint(x, y), 0, 0, 255);
                 }
             }
         }

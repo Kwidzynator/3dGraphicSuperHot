@@ -138,7 +138,7 @@ void Texturing::painting(){
             tmp1.ry() = cuts.at(i).second;
             tmp2.rx() = cuts.at(i + 1).first;
             tmp2.ry() = cuts.at(i + 1).second;
-            drawLine->paintLine(tmp1, tmp2);
+            // drawLine->paintLine(tmp1, tmp2);
 
         }
 
